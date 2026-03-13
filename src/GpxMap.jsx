@@ -4,8 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-gpx';
 
 // Leaflet 기본 아이콘 설정 (웹팩/Vite 이슈 해결)
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import markerIcon from '/marker-icon.png';
+import markerShadow from '/marker-shadow.png';
 
 let DefaultIcon = L.icon({
   iconUrl: markerIcon,

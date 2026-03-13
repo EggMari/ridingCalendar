@@ -64,7 +64,7 @@ body, html, #root {
 .event-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .event-title { margin: 0; font-size: 1.25rem; font-weight: 800; flex: 1; }
 .event-item-header { font-size: 0.85rem; color: #222; font-weight: bold; margin-bottom: 15px; border-left: 4px solid #007bff; padding-left: 8px; }
-.event-desc-box { background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5; color: #444; }
+.event-desc-box { background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5; color: #444;white-space: pre-wrap; word-break: break-all; }
 .map-wrapper { width: 100%; border-radius: 12px; overflow: hidden; height: 300px; margin-bottom: 20px; border: 1px solid #eee; }
 
 /* 💡 참가자 네모 박스 스타일 복구 */
@@ -84,3 +84,12 @@ body, html, #root {
 
 .rsvp-btn { width: 100%; padding: 15px; background-color: #007bff; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1rem; }
 .rsvp-btn.cancel { background-color: #6c757d; }
+.desc-link {
+  color: #007bff;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.desc-link:hover {
+  color: #0056b3;
+}

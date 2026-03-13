@@ -244,7 +244,28 @@ function App() {
   if (profile?.is_blocked) return <div className="app-container"><div className="setup-box"><Ban size={48} color="#ff4d4d" /><h2>차단됨</h2><button onClick={handleLogout} className="logout-btn">로그아웃</button></div></div>;
 
   const selectedDayEvents = events.filter(ev => ev.date === format(selectedDate, 'yyyy-MM-dd'));
+const renderDescription = (text) => {
+  if (!text) return null;
 
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  
+  return text.split(urlRegex).map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a 
+          key={i} 
+          href={part} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="desc-link"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
   return (
     <div className="app-container">
       {showEditProfile && (
@@ -276,7 +297,7 @@ function App() {
             <span className="user-nickname">{profile.nickname} 님</span>
             <button onClick={()=>{setNicknameInput(profile.nickname); setShowEditProfile(true)}} className="icon-btn"><Edit3 size={14} /></button>
             <button onClick={handleLogout} className="text-btn">로그아웃</button>
-            <button onClick={() => setShowModal(true)} className="reg-btn"><PlusCircle size={14} /> 등록</button>
+            <button onClick={() => setShowModal(true)} className="reg-btn"><PlusCircle size={14} />벙 등록</button>
           </div>
         ) : (
           <button onClick={handleKakaoLogin} className="kakao-login-btn">카카오 로그인</button>
@@ -351,7 +372,11 @@ function App() {
             <div className="creator-info"><User size={12} /> <span>작성자: {ev.creator_name}</span>
               {profile?.is_admin && profile.nickname !== ev.creator_name && <button onClick={() => handleBlockUser(ev.creator_name)} className="icon-btn"><Ban size={12} color="#ff4d4d"/></button>}
             </div>
-            {ev.description && <div className="event-desc-box">{ev.description}</div>}
+            {ev.description && (
+              <div className="event-desc-box" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                {renderDescription(ev.description)}
+              </div>
+            )}
             {ev.gpx_content && <div className="map-wrapper"><GpxMap gpxData={ev.gpx_content} /></div>}
             
             <div className="participant-section">
