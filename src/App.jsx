@@ -7,7 +7,7 @@ import {
 import { 
   ChevronLeft, ChevronRight, PlusCircle, X, User, Users, 
   CloudRain, Thermometer, Trash2, FileUp, Download, 
-  ShieldCheck, Ban, Edit3, Settings2, MapPin, MessageCircle 
+  ShieldCheck, Ban, Settings2, MapPin, MessageCircle 
 } from 'lucide-react'; 
 import { supabase } from './supabaseClient';
 import './App.css';
@@ -21,7 +21,6 @@ function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
   const [editingEventId, setEditingEventId] = useState(null);
   const [events, setEvents] = useState([]);
   const [weather, setWeather] = useState({ max: '-', min: '-', pop: '-' });
@@ -78,10 +77,15 @@ function App() {
     if (!error && data) setProfile(data);
   };
 
-  const fetchEvents = async () => {
-    const { data, error } = await supabase.from('events').select('*').gte('date', format(today, 'yyyy-MM-dd')).order('date', { ascending: true });
-    if (!error) setEvents(data || []);
-  };
+ const fetchEvents = async () => {
+  const { data, error } = await supabase
+    .from('events')
+    .select('*')
+    .gte('date', format(today, 'yyyy-MM-dd'))
+    .order('time', { ascending: true }); // 💡 시간순으로만 정렬
+
+  if (!error) setEvents(data || []);
+};
 
   const handleKakaoLogin = async () => {
     await supabase.auth.signInWithOAuth({
@@ -92,20 +96,7 @@ function App() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setShowModal(false); setShowEditProfile(false);
-  };
-
-  const updateNickname = async () => {
-    if (!nicknameInput.trim()) return alert("닉네임을 입력해주세요.");
-    setIsProcessing(true);
-    const { error } = await supabase.from('profiles').update({ nickname: nicknameInput.trim() }).eq('id', session.user.id);
-    if (!error) {
-      alert("변경되었습니다.");
-      setProfile({ ...profile, nickname: nicknameInput.trim() });
-      setShowEditProfile(false);
-      fetchEvents();
-    }
-    setIsProcessing(false);
+    setShowModal(false);
   };
 
   const registerNickname = async () => {
@@ -113,6 +104,7 @@ function App() {
     setIsProcessing(true);
     const { error } = await supabase.from('profiles').insert([{ id: session.user.id, nickname: nicknameInput.trim() }]);
     if (!error) await fetchProfile(session.user.id);
+    else alert("이미 존재하는 닉네임이거나 오류가 발생했습니다.");
     setIsProcessing(false);
   };
 
@@ -138,7 +130,7 @@ function App() {
 
   const saveEvent = async () => {
     if (!newTitle) return alert("제목을 입력하세요.");
-    if (!isValidChatLink(newChatLink)) return alert("카톡 오픈채팅 주소만 허용됩니다.");
+    if (!isValidChatLink(newChatLink)) return alert("오픈채팅 링크는 'open.kakao.com'으로 시작해야 합니다.");
     if (newMaxParticipants < 1) return alert("최소 1명 이상의 정원을 설정해주세요.");
 
     setIsProcessing(true);
@@ -209,9 +201,11 @@ function App() {
     if (!profile) return alert("로그인이 필요합니다.");
     const myName = profile.nickname;
     const isJoining = event.participants.includes(myName);
+    
     if (!isJoining && event.participants.length >= event.max_participants) {
       return alert("정원이 가득 찼습니다.");
     }
+
     const newParticipants = isJoining ? event.participants.filter(p => p !== myName) : [...event.participants, myName];
     await supabase.from('events').update({ participants: newParticipants }).eq('id', event.id);
     fetchEvents();
@@ -274,28 +268,19 @@ function App() {
   if (loading) return <div className="app-container">연결 중...</div>;
   if (profile?.is_blocked) return <div className="app-container"><div className="setup-box"><Ban size={48} color="#ff4d4d" /><h2>차단됨</h2><button onClick={handleLogout} className="logout-btn">로그아웃</button></div></div>;
 
-  const selectedDayEvents = events.filter(ev => ev.date === format(selectedDate, 'yyyy-MM-dd'));
+  const selectedDayEvents = events
+  .filter(ev => ev.date === format(selectedDate, 'yyyy-MM-dd'))
+  .sort((a, b) => a.time.localeCompare(b.time));
 
   return (
     <div className="app-container">
-      {showEditProfile && (
-        <div className="modal-overlay" style={{ zIndex: 3000 }}>
-          <div className="modal-content">
-             <div className="modal-header"><h3>정보 수정</h3><button onClick={()=>setShowEditProfile(false)} className="close-btn" disabled={isProcessing}><X size={20} /></button></div>
-             <div className="modal-body">
-               <input type="text" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} placeholder="새 닉네임" disabled={isProcessing} />
-               <button onClick={updateNickname} className="save-btn" disabled={isProcessing}>{isProcessing ? "변경 중..." : "변경하기"}</button>
-             </div>
-          </div>
-        </div>
-      )}
-
+      {/* 가입 시 닉네임 설정 모달 */}
       {session && !profile && (
         <div className="modal-overlay" style={{ zIndex: 2000 }}>
           <div className="setup-box">
-            <h2>반가워요!</h2><p>고닉을 입력해 주세요</p>
+            <h2>반가워요!</h2><p>활동에 사용할 닉네임을 입력해 주세요.</p>
             <input type="text" placeholder="갤닉 그대로" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} className="nickname-input" disabled={isProcessing} />
-            <button onClick={registerNickname} className="save-btn" disabled={isProcessing}>{isProcessing ? "등록 중..." : "시작하기"}</button>
+            <button onClick={registerNickname} className="save-btn" disabled={isProcessing}>{isProcessing ? "등록 중..." : "시하기"}</button>
           </div>
         </div>
       )}
@@ -305,7 +290,6 @@ function App() {
           <div className="user-info-row">
             {profile.is_admin ? <ShieldCheck size={16} color="#28a745" /> : <User size={16} />}
             <span className="user-nickname">{profile.nickname} 님</span>
-            <button onClick={()=>{setNicknameInput(profile.nickname); setShowEditProfile(true)}} className="icon-btn"><Edit3 size={14} /></button>
             <button onClick={handleLogout} className="text-btn">로그아웃</button>
             <button onClick={openRegModal} className="reg-btn"><PlusCircle size={14} /> 벙 등록</button>
           </div>
@@ -343,7 +327,6 @@ function App() {
               <button onClick={closeModal} className="close-btn" disabled={isProcessing}><X size={20} /></button>
             </div>
             <div className="modal-body">
-              {/* 💡 한 줄 배치 시작: 날짜 & 시간 */}
               <div className="modal-row">
                 <div className="input-group">
                   <label>날짜</label>
@@ -355,7 +338,6 @@ function App() {
                 </div>
               </div>
 
-              {/* 💡 한 줄 배치 시작: 정원 & 장소 */}
               <div className="modal-row">
                 <div className="input-group flex-shrink">
                   <label>정원 (명)</label>
@@ -370,13 +352,11 @@ function App() {
               <input type="text" placeholder="제목" value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} disabled={isProcessing} />
               <input type="text" placeholder="카카오 오픈채팅 링크" value={newChatLink} onChange={(e)=>setNewChatLink(e.target.value)} disabled={isProcessing} />
               <textarea placeholder="상세 설명" value={newDescription} onChange={(e)=>setNewDescription(e.target.value)} disabled={isProcessing} />
-              
               <label className="gpx-upload-area" htmlFor="gpx-input" style={{ opacity: isProcessing ? 0.6 : 1 }}>
                 <FileUp size={28} /><span className="file-label-main">GPX 코스 업로드</span>
                 <input id="gpx-input" type="file" accept=".gpx" onChange={handleFileUpload} style={{display:'none'}} disabled={isProcessing}/>
                 {gpxData && <p style={{color:'#28a745', fontSize:'0.8rem', fontWeight:'bold'}}>✓ 파일 선택됨</p>}
               </label>
-              
               <button className="save-btn" onClick={saveEvent} disabled={isProcessing}>
                 {isProcessing ? (editingEventId ? "수정 중..." : "등록 중...") : (editingEventId ? "수정 완료" : "등록 완료")}
               </button>
@@ -389,7 +369,8 @@ function App() {
         {selectedDayEvents.map(ev => {
           const isJoined = ev.participants.includes(profile?.nickname);
           const isFull = ev.participants.length >= ev.max_participants;
-          
+          const isChatLinkValid = isValidChatLink(ev.chat_link) && ev.chat_link;
+
           return (
             <div key={ev.id} className="event-item">
               <div className="event-title-row">
@@ -409,7 +390,7 @@ function App() {
                 {ev.location && <span><MapPin size={12} style={{marginLeft:'8px', marginRight:'2px'}}/>{ev.location}</span>}
               </div>
               
-              {isValidChatLink(ev.chat_link) && ev.chat_link && (
+              {isChatLinkValid && (
                 <a href={ev.chat_link.startsWith('http') ? ev.chat_link : `https://${ev.chat_link}`} target="_blank" rel="noopener noreferrer" className="chat-link-btn">
                   <MessageCircle size={14} /> 오픈채팅방 입장하기
                 </a>
