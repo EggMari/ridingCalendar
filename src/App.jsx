@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { 
   format, addMonths, subMonths, startOfMonth, endOfMonth, 
   startOfWeek, endOfWeek, isSameMonth, isSameDay, addDays, 
-  getDay, isBefore, startOfToday 
+  isBefore, startOfToday 
 } from 'date-fns';
 import { 
-  ChevronLeft, ChevronRight, PlusCircle, X, Link as LinkIcon, 
-  User, Users, CloudRain, Thermometer, Trash2, FileUp, 
-  Download, LogIn, ShieldCheck, Ban, Edit3, Settings2, MapPin 
+  ChevronLeft, ChevronRight, PlusCircle, X, User, Users, 
+  CloudRain, Thermometer, Trash2, FileUp, Download, 
+  ShieldCheck, Ban, Edit3, Settings2, MapPin 
 } from 'lucide-react'; 
 import { supabase } from './supabaseClient';
 import './App.css';
@@ -28,7 +28,7 @@ function App() {
   const [nicknameInput, setNicknameInput] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newTime, setNewTime] = useState("09:00");
-  const [newLocation, setNewLocation] = useState("");
+  const [newLocation, setNewLocation] = useState(""); 
   const [newDescription, setNewDescription] = useState("");
   const [gpxData, setGpxData] = useState(""); 
 
@@ -79,6 +79,20 @@ function App() {
     if (!error) setEvents(data || []);
   };
 
+  // 💡 UUID 기반 미니멀 로그인 (추가 정보 요청 절대 안 함)
+  const handleKakaoLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          scope: '' // 닉네임, 프로필, 이메일 요청 안 함
+        }
+      }
+    });
+    if (error) alert("로그인 오류: " + error.message);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setShowModal(false); setShowEditProfile(false);
@@ -118,7 +132,11 @@ function App() {
 
   const saveEvent = async () => {
     if (!newTitle) return alert("제목을 입력하세요.");
-    const eventData = { title: newTitle, date: format(selectedDate, 'yyyy-MM-dd'), time: newTime, location: newLocation, description: newDescription, gpx_content: gpxData, creator_name: profile.nickname };
+    const eventData = { 
+      title: newTitle, date: format(selectedDate, 'yyyy-MM-dd'), 
+      time: newTime, location: newLocation, description: newDescription, 
+      gpx_content: gpxData, creator_name: profile.nickname 
+    };
     let error;
     if (editingEventId) {
       const { error: err } = await supabase.from('events').update(eventData).eq('id', editingEventId);
@@ -136,7 +154,9 @@ function App() {
   };
 
   const handleEditClick = (ev) => {
-    setEditingEventId(ev.id); setNewTitle(ev.title); setNewTime(ev.time); setNewLocation(ev.location || ""); setNewDescription(ev.description || ""); setGpxData(ev.gpx_content || ""); setShowModal(true);
+    setEditingEventId(ev.id); setNewTitle(ev.title); setNewTime(ev.time); 
+    setNewLocation(ev.location || ""); setNewDescription(ev.description || ""); 
+    setGpxData(ev.gpx_content || ""); setShowModal(true);
   };
 
   const deleteEvent = async (id) => {
@@ -171,7 +191,7 @@ function App() {
     while (day <= endDate) {
       for (let i = 0; i < 7; i++) {
         const cloneDay = day;
-        const isPast = isBefore(cloneDay, today); // 과거 날짜 여부 체크
+        const isPast = isBefore(cloneDay, today);
         const isInvalidMonth = !isSameMonth(cloneDay, monthStart);
         
         days.push(
@@ -179,7 +199,7 @@ function App() {
             key={day.toString()} 
             className={`cell ${isInvalidMonth ? 'not-valid' : ''} ${isPast ? 'is-past' : ''} ${isSameDay(day, selectedDate) ? 'selected' : ''}`}
             onClick={() => {
-              if (isPast || isInvalidMonth) return; // 💡 과거 날짜 클릭 차단
+              if (isPast || isInvalidMonth) return;
               setSelectedDate(cloneDay);
             }}
           >
@@ -202,7 +222,6 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* 정보 수정 모달 */}
       {showEditProfile && (
         <div className="modal-overlay" style={{ zIndex: 3000 }}>
           <div className="modal-content">
@@ -215,7 +234,6 @@ function App() {
         </div>
       )}
 
-      {/* 닉네임 최초 등록 모달 */}
       {session && !profile && (
         <div className="modal-overlay" style={{ zIndex: 2000 }}>
           <div className="setup-box">
@@ -226,18 +244,17 @@ function App() {
         </div>
       )}
 
-      {/* 상단 바: 💡 한 줄 정렬 보장 */}
       <div className="auth-bar">
         {session && profile ? (
           <div className="user-info-row">
             {profile.is_admin ? <ShieldCheck size={16} color="#28a745" /> : <User size={16} />}
             <span className="user-nickname">{profile.nickname} 님</span>
-            <button onClick={()=>{setNicknameInput(profile.nickname); setShowEditProfile(true)}} className="icon-btn" title="정보 수정"><Edit3 size={14} /></button>
+            <button onClick={()=>{setNicknameInput(profile.nickname); setShowEditProfile(true)}} className="icon-btn"><Edit3 size={14} /></button>
             <button onClick={handleLogout} className="text-btn">로그아웃</button>
             <button onClick={() => setShowModal(true)} className="reg-btn"><PlusCircle size={14} /> 등록</button>
           </div>
         ) : (
-          <button onClick={() => supabase.auth.signInWithOAuth({ provider: 'kakao' })} className="kakao-login-btn">카카오 로그인</button>
+          <button onClick={handleKakaoLogin} className="kakao-login-btn">카카오 로그인</button>
         )}
       </div>
 
@@ -272,8 +289,8 @@ function App() {
             <div className="modal-body">
               <input type="text" placeholder="제목 (예: 남북 벙)" value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} />
               <input type="time" value={newTime} onChange={(e)=>setNewTime(e.target.value)} />
-              <input type="text" placeholder="집합 장소 (예: 반포 미니스톱)" value={newLocation} onChange={(e)=>setNewLocation(e.target.value)} />
-              <textarea placeholder="상세 설명 (오픈채팅 링크 등)" value={newDescription} onChange={(e)=>setNewDescription(e.target.value)} />
+              <input type="text" placeholder="집합 장소" value={newLocation} onChange={(e)=>setNewLocation(e.target.value)} />
+              <textarea placeholder="상세 설명" value={newDescription} onChange={(e)=>setNewDescription(e.target.value)} />
               <label className="gpx-upload-area" htmlFor="gpx-input">
                 <FileUp size={28} /><span className="file-label-main">GPX 코스 업로드</span>
                 <input id="gpx-input" type="file" accept=".gpx" onChange={handleFileUpload} style={{display:'none'}}/>
@@ -313,7 +330,6 @@ function App() {
             <div className="participant-section">
               <div className="participant-header"><Users size={14} /><span>참가 신청 ({ev.participants.length}명)</span></div>
               <div className="participant-list">
-                {/* 💡 참가자 목록 네모 박스 스타일 복구 */}
                 {ev.participants.map(p => <span key={p} className="participant-name">{p}</span>)}
               </div>
             </div>
