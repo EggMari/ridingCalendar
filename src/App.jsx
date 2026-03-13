@@ -237,8 +237,8 @@ function App() {
       {session && !profile && (
         <div className="modal-overlay" style={{ zIndex: 2000 }}>
           <div className="setup-box">
-            <h2>반가워요! 👋</h2><p>활동에 사용할 닉네임을 설정해주세요.</p>
-            <input type="text" placeholder="예: 비앙키요정" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} className="nickname-input" />
+            <h2>반가워요!</h2><p>고닉을 입력해 주세요</p>
+            <input type="text" placeholder="갤닉 그대로" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} className="nickname-input" />
             <button onClick={registerNickname} className="save-btn">시작하기</button>
           </div>
         </div>
