@@ -14,9 +14,13 @@ import './App.css';
 import GpxMap from './GpxMap';
 
 function App() {
+  // ---------------------------------------------------------
+  // 1. 모든 Hook(상태 정의)은 여기(함수 몸체 시작점)에 모여야 함
+  // ---------------------------------------------------------
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
@@ -34,6 +38,9 @@ function App() {
 
   const today = startOfToday();
 
+  // ---------------------------------------------------------
+  // 2. 실행 로직 (useEffect)
+  // ---------------------------------------------------------
   useEffect(() => {
     const initAuth = async () => {
       const { data: { session: s } } = await supabase.auth.getSession();
@@ -69,6 +76,9 @@ function App() {
     fetchWeather();
   }, [selectedDate]);
 
+  // ---------------------------------------------------------
+  // 3. 헬퍼 함수들
+  // ---------------------------------------------------------
   const fetchProfile = async (userId) => {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (!error && data) setProfile(data);
@@ -82,7 +92,10 @@ function App() {
   const handleKakaoLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'kakao',
-      options: { redirectTo: window.location.origin, queryParams: { scope: '' } }
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: { scope: '' }
+      }
     });
   };
 
@@ -93,6 +106,7 @@ function App() {
 
   const updateNickname = async () => {
     if (!nicknameInput.trim()) return alert("닉네임을 입력해주세요.");
+    setIsProcessing(true);
     const { error } = await supabase.from('profiles').update({ nickname: nicknameInput.trim() }).eq('id', session.user.id);
     if (!error) {
       alert("변경되었습니다.");
@@ -100,12 +114,15 @@ function App() {
       setShowEditProfile(false);
       fetchEvents();
     }
+    setIsProcessing(false);
   };
 
   const registerNickname = async () => {
     if (!nicknameInput.trim()) return alert("닉네임을 입력해주세요.");
+    setIsProcessing(true);
     const { error } = await supabase.from('profiles').insert([{ id: session.user.id, nickname: nicknameInput.trim() }]);
     if (!error) await fetchProfile(session.user.id);
+    setIsProcessing(false);
   };
 
   const handleBlockUser = async (nickname) => {
@@ -123,62 +140,48 @@ function App() {
     }
   };
 
+  const saveEvent = async () => {
+    if (!newTitle) return alert("제목을 입력하세요.");
+    setIsProcessing(true);
+    const eventData = { 
+      title: newTitle, date: format(selectedDate, 'yyyy-MM-dd'), 
+      time: newTime, location: newLocation, description: newDescription, 
+      gpx_content: gpxData, creator_name: profile.nickname 
+    };
+    try {
+      let error;
+      if (editingEventId) {
+        const { error: err } = await supabase.from('events').update(eventData).eq('id', editingEventId);
+        error = err;
+      } else {
+        const { error: err } = await supabase.from('events').insert([{ ...eventData, participants: [profile.nickname] }]);
+        error = err;
+      }
+      if (error) throw error;
+      closeModal();
+      await fetchEvents();
+    } catch (err) {
+      alert("에러 발생: " + err.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const closeModal = () => {
-    setShowModal(false); 
-    setEditingEventId(null);
+    setShowModal(false); setEditingEventId(null);
     setNewTitle(""); setNewTime("09:00"); setNewLocation(""); setNewDescription(""); setGpxData("");
   };
 
-  // 💡 수정 버튼 클릭 시 실행되는 함수 (데이터 바인딩 강화)
   const handleEditClick = (ev) => {
-    setEditingEventId(ev.id);
-    setNewTitle(ev.title);
-    setNewTime(ev.time);
-    setNewLocation(ev.location || "");
-    setNewDescription(ev.description || "");
-    setGpxData(ev.gpx_content || "");
-    setShowModal(true); // 모달 열기
-  };
-
-  const saveEvent = async () => {
-    if (!newTitle) return alert("제목을 입력하세요.");
-    
-    // 💡 날짜는 수정 중에도 유지되어야 하므로 기존 로직 유지 (현재 달력의 selectedDate 사용)
-    const eventData = { 
-      title: newTitle, 
-      date: format(selectedDate, 'yyyy-MM-dd'), 
-      time: newTime, 
-      location: newLocation, 
-      description: newDescription, 
-      gpx_content: gpxData, 
-      creator_name: profile.nickname 
-    };
-
-    let error;
-    if (editingEventId) {
-      // 💡 수정 로직
-      const { error: err } = await supabase.from('events').update(eventData).eq('id', editingEventId);
-      error = err;
-    } else {
-      // 💡 신규 등록 로직
-      const { error: err } = await supabase.from('events').insert([{ ...eventData, participants: [profile.nickname] }]);
-      error = err;
-    }
-
-    if (error) {
-      console.error("저장 실패:", error);
-      alert("저장에 실패했습니다: " + error.message);
-    } else {
-      closeModal();
-      fetchEvents();
-    }
+    setEditingEventId(ev.id); setNewTitle(ev.title); setNewTime(ev.time); 
+    setNewLocation(ev.location || ""); setNewDescription(ev.description || ""); 
+    setGpxData(ev.gpx_content || ""); setShowModal(true);
   };
 
   const deleteEvent = async (id) => {
-    if (window.confirm("삭제하시겠습니까?")) {
+    if (window.confirm("삭제하시겠습니까?")) { 
       const { error } = await supabase.from('events').delete().eq('id', id);
-      if (error) alert("삭제 실패: " + error.message);
-      else fetchEvents();
+      if (!error) fetchEvents();
     }
   };
 
@@ -234,6 +237,9 @@ function App() {
     return <div className="body">{rows}</div>;
   };
 
+  // ---------------------------------------------------------
+  // 4. 화면 렌더링 (JSX)
+  // ---------------------------------------------------------
   if (loading) return <div className="app-container">연결 중...</div>;
   if (profile?.is_blocked) return <div className="app-container"><div className="setup-box"><Ban size={48} color="#ff4d4d" /><h2>차단됨</h2><button onClick={handleLogout} className="logout-btn">로그아웃</button></div></div>;
 
@@ -241,31 +247,28 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* 정보 수정 모달 */}
       {showEditProfile && (
         <div className="modal-overlay" style={{ zIndex: 3000 }}>
           <div className="modal-content">
-             <div className="modal-header"><h3>정보 수정</h3><button onClick={()=>setShowEditProfile(false)} className="close-btn"><X size={20} /></button></div>
+             <div className="modal-header"><h3>정보 수정</h3><button onClick={()=>setShowEditProfile(false)} className="close-btn" disabled={isProcessing}><X size={20} /></button></div>
              <div className="modal-body">
-               <input type="text" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} placeholder="새 닉네임" />
-               <button onClick={updateNickname} className="save-btn">변경하기</button>
+               <input type="text" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} placeholder="새 닉네임" disabled={isProcessing} />
+               <button onClick={updateNickname} className="save-btn" disabled={isProcessing}>{isProcessing ? "변경 중..." : "변경하기"}</button>
              </div>
           </div>
         </div>
       )}
 
-      {/* 닉네임 최초 등록 모달 */}
       {session && !profile && (
         <div className="modal-overlay" style={{ zIndex: 2000 }}>
           <div className="setup-box">
             <h2>반가워요!</h2><p>고닉을 입력해 주세요</p>
-            <input type="text" placeholder="갤닉 그대로" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} className="nickname-input" />
-            <button onClick={registerNickname} className="save-btn">시작하기</button>
+            <input type="text" placeholder="갤닉 그대로" value={nicknameInput} onChange={(e) => setNicknameInput(e.target.value)} className="nickname-input" disabled={isProcessing} />
+            <button onClick={registerNickname} className="save-btn" disabled={isProcessing}>{isProcessing ? "등록 중..." : "시작하기"}</button>
           </div>
         </div>
       )}
 
-      {/* 상단 바 */}
       <div className="auth-bar">
         {session && profile ? (
           <div className="user-info-row">
@@ -305,20 +308,22 @@ function App() {
         <div className="modal-overlay">
           <div className="modal-content">
             <div className="modal-header">
-              <h3>{editingEventId ? "📝 일정 수정" : `📅 라이딩 등록 (${format(selectedDate, 'M/dd')})`}</h3>
-              <button onClick={closeModal} className="close-btn"><X size={20} /></button>
+              <h3>{editingEventId ? "📝 일정 수정" : `📅 라이딩 등록`}</h3>
+              <button onClick={closeModal} className="close-btn" disabled={isProcessing}><X size={20} /></button>
             </div>
             <div className="modal-body">
-              <input type="text" placeholder="제목 (예: 남북 벙)" value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} />
-              <input type="time" value={newTime} onChange={(e)=>setNewTime(e.target.value)} />
-              <input type="text" placeholder="집합 장소" value={newLocation} onChange={(e)=>setNewLocation(e.target.value)} />
-              <textarea placeholder="오픈톡방 링크 및 상세 설명" value={newDescription} onChange={(e)=>setNewDescription(e.target.value)} />
-              <label className="gpx-upload-area" htmlFor="gpx-input">
+              <input type="text" placeholder="제목" value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} disabled={isProcessing} />
+              <input type="time" value={newTime} onChange={(e)=>setNewTime(e.target.value)} disabled={isProcessing} />
+              <input type="text" placeholder="집합 장소" value={newLocation} onChange={(e)=>setNewLocation(e.target.value)} disabled={isProcessing} />
+              <textarea placeholder="상세 설명" value={newDescription} onChange={(e)=>setNewDescription(e.target.value)} disabled={isProcessing} />
+              <label className="gpx-upload-area" htmlFor="gpx-input" style={{ opacity: isProcessing ? 0.6 : 1 }}>
                 <FileUp size={28} /><span className="file-label-main">GPX 코스 업로드</span>
-                <input id="gpx-input" type="file" accept=".gpx" onChange={handleFileUpload} style={{display:'none'}}/>
+                <input id="gpx-input" type="file" accept=".gpx" onChange={handleFileUpload} style={{display:'none'}} disabled={isProcessing}/>
                 {gpxData && <p style={{color:'#28a745', fontSize:'0.8rem', fontWeight:'bold'}}>✓ 파일 선택됨</p>}
               </label>
-              <button className="save-btn" onClick={saveEvent}>{editingEventId ? "수정 완료" : "등록 완료"}</button>
+              <button className="save-btn" onClick={saveEvent} disabled={isProcessing}>
+                {isProcessing ? (editingEventId ? "수정 중..." : "등록 중...") : (editingEventId ? "수정 완료" : "등록 완료")}
+              </button>
             </div>
           </div>
         </div>
