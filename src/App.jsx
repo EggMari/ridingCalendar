@@ -79,18 +79,11 @@ function App() {
     if (!error) setEvents(data || []);
   };
 
-  // 💡 UUID 기반 미니멀 로그인 (추가 정보 요청 절대 안 함)
   const handleKakaoLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
+    await supabase.auth.signInWithOAuth({
       provider: 'kakao',
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: {
-          scope: '' // 닉네임, 프로필, 이메일 요청 안 함
-        }
-      }
+      options: { redirectTo: window.location.origin, queryParams: { scope: '' } }
     });
-    if (error) alert("로그인 오류: " + error.message);
   };
 
   const handleLogout = async () => {
@@ -130,37 +123,63 @@ function App() {
     }
   };
 
-  const saveEvent = async () => {
-    if (!newTitle) return alert("제목을 입력하세요.");
-    const eventData = { 
-      title: newTitle, date: format(selectedDate, 'yyyy-MM-dd'), 
-      time: newTime, location: newLocation, description: newDescription, 
-      gpx_content: gpxData, creator_name: profile.nickname 
-    };
-    let error;
-    if (editingEventId) {
-      const { error: err } = await supabase.from('events').update(eventData).eq('id', editingEventId);
-      error = err;
-    } else {
-      const { error: err } = await supabase.from('events').insert([{ ...eventData, participants: [profile.nickname] }]);
-      error = err;
-    }
-    if (!error) { closeModal(); fetchEvents(); }
-  };
-
   const closeModal = () => {
-    setShowModal(false); setEditingEventId(null);
+    setShowModal(false); 
+    setEditingEventId(null);
     setNewTitle(""); setNewTime("09:00"); setNewLocation(""); setNewDescription(""); setGpxData("");
   };
 
+  // 💡 수정 버튼 클릭 시 실행되는 함수 (데이터 바인딩 강화)
   const handleEditClick = (ev) => {
-    setEditingEventId(ev.id); setNewTitle(ev.title); setNewTime(ev.time); 
-    setNewLocation(ev.location || ""); setNewDescription(ev.description || ""); 
-    setGpxData(ev.gpx_content || ""); setShowModal(true);
+    setEditingEventId(ev.id);
+    setNewTitle(ev.title);
+    setNewTime(ev.time);
+    setNewLocation(ev.location || "");
+    setNewDescription(ev.description || "");
+    setGpxData(ev.gpx_content || "");
+    setShowModal(true); // 모달 열기
+  };
+
+  const saveEvent = async () => {
+    if (!newTitle) return alert("제목을 입력하세요.");
+    
+    // 💡 날짜는 수정 중에도 유지되어야 하므로 기존 로직 유지 (현재 달력의 selectedDate 사용)
+    const eventData = { 
+      title: newTitle, 
+      date: format(selectedDate, 'yyyy-MM-dd'), 
+      time: newTime, 
+      location: newLocation, 
+      description: newDescription, 
+      gpx_content: gpxData, 
+      creator_name: profile.nickname 
+    };
+
+    let error;
+    if (editingEventId) {
+      // 💡 수정 로직
+      const { error: err } = await supabase.from('events').update(eventData).eq('id', editingEventId);
+      error = err;
+    } else {
+      // 💡 신규 등록 로직
+      const { error: err } = await supabase.from('events').insert([{ ...eventData, participants: [profile.nickname] }]);
+      error = err;
+    }
+
+    if (error) {
+      console.error("저장 실패:", error);
+      alert("저장에 실패했습니다: " + error.message);
+    } else {
+      closeModal();
+      fetchEvents();
+    }
   };
 
   const deleteEvent = async (id) => {
-    if (window.confirm("삭제하시겠습니까?")) { await supabase.from('events').delete().eq('id', id); fetchEvents(); }
+    if (window.confirm("삭제하시겠습니까?")) {
+      const { error } = await supabase.from('events').delete().eq('id', id);
+      if (error) alert("삭제 실패: " + error.message);
+      else fetchEvents();
+    }
   };
 
   const handleRSVP = async (event) => {
@@ -222,6 +241,7 @@ function App() {
 
   return (
     <div className="app-container">
+      {/* 정보 수정 모달 */}
       {showEditProfile && (
         <div className="modal-overlay" style={{ zIndex: 3000 }}>
           <div className="modal-content">
@@ -234,6 +254,7 @@ function App() {
         </div>
       )}
 
+      {/* 닉네임 최초 등록 모달 */}
       {session && !profile && (
         <div className="modal-overlay" style={{ zIndex: 2000 }}>
           <div className="setup-box">
@@ -244,6 +265,7 @@ function App() {
         </div>
       )}
 
+      {/* 상단 바 */}
       <div className="auth-bar">
         {session && profile ? (
           <div className="user-info-row">
@@ -308,11 +330,11 @@ function App() {
             <div className="event-title-row">
               <h3 className="event-title">📍 {ev.title}</h3>
               <div className="event-action-btns">
-                {ev.gpx_content && <button onClick={() => downloadGpx(ev.gpx_content, ev.title)} title="GPX 다운로드"><Download size={18} color="#007bff" /></button>}
+                {ev.gpx_content && <button className="icon-btn" onClick={() => downloadGpx(ev.gpx_content, ev.title)} title="GPX 다운로드"><Download size={18} color="#007bff" /></button>}
                 {profile && (profile.nickname === ev.creator_name || profile.is_admin) && (
                   <>
-                    <button onClick={() => handleEditClick(ev)}><Settings2 size={18} /></button>
-                    <button onClick={() => deleteEvent(ev.id)}><Trash2 size={18} color="#ff4d4d" /></button>
+                    <button className="icon-btn" onClick={() => handleEditClick(ev)}><Settings2 size={18} /></button>
+                    <button className="icon-btn" onClick={() => deleteEvent(ev.id)}><Trash2 size={18} color="#ff4d4d" /></button>
                   </>
                 )}
               </div>
