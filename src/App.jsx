@@ -7,16 +7,13 @@ import {
 import { 
   ChevronLeft, ChevronRight, PlusCircle, X, User, Users, 
   CloudRain, Thermometer, Trash2, FileUp, Download, 
-  ShieldCheck, Ban, Edit3, Settings2, MapPin 
+  ShieldCheck, Ban, Edit3, Settings2, MapPin, MessageCircle 
 } from 'lucide-react'; 
 import { supabase } from './supabaseClient';
 import './App.css';
 import GpxMap from './GpxMap';
 
 function App() {
-  // ---------------------------------------------------------
-  // 1. 모든 Hook(상태 정의)은 여기(함수 몸체 시작점)에 모여야 함
-  // ---------------------------------------------------------
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,15 +29,15 @@ function App() {
   const [nicknameInput, setNicknameInput] = useState("");
   const [newTitle, setNewTitle] = useState("");
   const [newTime, setNewTime] = useState("09:00");
+  const [newEventDate, setNewEventDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [newMaxParticipants, setNewMaxParticipants] = useState(10);
   const [newLocation, setNewLocation] = useState(""); 
+  const [newChatLink, setNewChatLink] = useState(""); 
   const [newDescription, setNewDescription] = useState("");
   const [gpxData, setGpxData] = useState(""); 
 
   const today = startOfToday();
 
-  // ---------------------------------------------------------
-  // 2. 실행 로직 (useEffect)
-  // ---------------------------------------------------------
   useEffect(() => {
     const initAuth = async () => {
       const { data: { session: s } } = await supabase.auth.getSession();
@@ -76,9 +73,6 @@ function App() {
     fetchWeather();
   }, [selectedDate]);
 
-  // ---------------------------------------------------------
-  // 3. 헬퍼 함수들
-  // ---------------------------------------------------------
   const fetchProfile = async (userId) => {
     const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (!error && data) setProfile(data);
@@ -92,10 +86,7 @@ function App() {
   const handleKakaoLogin = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'kakao',
-      options: {
-        redirectTo: window.location.origin,
-        queryParams: { scope: '' }
-      }
+      options: { redirectTo: window.location.origin, queryParams: { scope: '' } }
     });
   };
 
@@ -140,13 +131,27 @@ function App() {
     }
   };
 
+  const isValidChatLink = (link) => {
+    if (!link) return true;
+    return link.startsWith('https://open.kakao.com') || link.startsWith('open.kakao.com');
+  };
+
   const saveEvent = async () => {
     if (!newTitle) return alert("제목을 입력하세요.");
+    if (!isValidChatLink(newChatLink)) return alert("카톡 오픈채팅 주소만 허용됩니다.");
+    if (newMaxParticipants < 1) return alert("최소 1명 이상의 정원을 설정해주세요.");
+
     setIsProcessing(true);
     const eventData = { 
-      title: newTitle, date: format(selectedDate, 'yyyy-MM-dd'), 
-      time: newTime, location: newLocation, description: newDescription, 
-      gpx_content: gpxData, creator_name: profile.nickname 
+      title: newTitle, 
+      date: newEventDate,
+      time: newTime, 
+      location: newLocation, 
+      chat_link: newChatLink, 
+      max_participants: parseInt(newMaxParticipants),
+      description: newDescription, 
+      gpx_content: gpxData, 
+      creator_name: profile.nickname 
     };
     try {
       let error;
@@ -169,13 +174,28 @@ function App() {
 
   const closeModal = () => {
     setShowModal(false); setEditingEventId(null);
-    setNewTitle(""); setNewTime("09:00"); setNewLocation(""); setNewDescription(""); setGpxData("");
+    setNewTitle(""); setNewTime("09:00"); 
+    setNewEventDate(format(selectedDate, 'yyyy-MM-dd'));
+    setNewMaxParticipants(10);
+    setNewLocation(""); setNewChatLink(""); setNewDescription(""); setGpxData("");
   };
 
   const handleEditClick = (ev) => {
-    setEditingEventId(ev.id); setNewTitle(ev.title); setNewTime(ev.time); 
-    setNewLocation(ev.location || ""); setNewDescription(ev.description || ""); 
-    setGpxData(ev.gpx_content || ""); setShowModal(true);
+    setEditingEventId(ev.id); 
+    setNewTitle(ev.title); 
+    setNewTime(ev.time); 
+    setNewEventDate(ev.date);
+    setNewMaxParticipants(ev.max_participants || 10);
+    setNewLocation(ev.location || ""); 
+    setNewChatLink(ev.chat_link || ""); 
+    setNewDescription(ev.description || ""); 
+    setGpxData(ev.gpx_content || ""); 
+    setShowModal(true);
+  };
+
+  const openRegModal = () => {
+    setNewEventDate(format(selectedDate, 'yyyy-MM-dd'));
+    setShowModal(true);
   };
 
   const deleteEvent = async (id) => {
@@ -189,6 +209,9 @@ function App() {
     if (!profile) return alert("로그인이 필요합니다.");
     const myName = profile.nickname;
     const isJoining = event.participants.includes(myName);
+    if (!isJoining && event.participants.length >= event.max_participants) {
+      return alert("정원이 가득 찼습니다.");
+    }
     const newParticipants = isJoining ? event.participants.filter(p => p !== myName) : [...event.participants, myName];
     await supabase.from('events').update({ participants: newParticipants }).eq('id', event.id);
     fetchEvents();
@@ -237,35 +260,22 @@ function App() {
     return <div className="body">{rows}</div>;
   };
 
-  // ---------------------------------------------------------
-  // 4. 화면 렌더링 (JSX)
-  // ---------------------------------------------------------
+  const renderDescription = (text) => {
+    if (!text) return null;
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.split(urlRegex).map((part, i) => {
+      if (part.match(urlRegex)) {
+        return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="desc-link">{part}</a>;
+      }
+      return part;
+    });
+  };
+
   if (loading) return <div className="app-container">연결 중...</div>;
   if (profile?.is_blocked) return <div className="app-container"><div className="setup-box"><Ban size={48} color="#ff4d4d" /><h2>차단됨</h2><button onClick={handleLogout} className="logout-btn">로그아웃</button></div></div>;
 
   const selectedDayEvents = events.filter(ev => ev.date === format(selectedDate, 'yyyy-MM-dd'));
-const renderDescription = (text) => {
-  if (!text) return null;
 
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  
-  return text.split(urlRegex).map((part, i) => {
-    if (part.match(urlRegex)) {
-      return (
-        <a 
-          key={i} 
-          href={part} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="desc-link"
-        >
-          {part}
-        </a>
-      );
-    }
-    return part;
-  });
-};
   return (
     <div className="app-container">
       {showEditProfile && (
@@ -297,7 +307,7 @@ const renderDescription = (text) => {
             <span className="user-nickname">{profile.nickname} 님</span>
             <button onClick={()=>{setNicknameInput(profile.nickname); setShowEditProfile(true)}} className="icon-btn"><Edit3 size={14} /></button>
             <button onClick={handleLogout} className="text-btn">로그아웃</button>
-            <button onClick={() => setShowModal(true)} className="reg-btn"><PlusCircle size={14} />벙 등록</button>
+            <button onClick={openRegModal} className="reg-btn"><PlusCircle size={14} /> 벙 등록</button>
           </div>
         ) : (
           <button onClick={handleKakaoLogin} className="kakao-login-btn">카카오 로그인</button>
@@ -333,15 +343,40 @@ const renderDescription = (text) => {
               <button onClick={closeModal} className="close-btn" disabled={isProcessing}><X size={20} /></button>
             </div>
             <div className="modal-body">
+              {/* 💡 한 줄 배치 시작: 날짜 & 시간 */}
+              <div className="modal-row">
+                <div className="input-group">
+                  <label>날짜</label>
+                  <input type="date" value={newEventDate} onChange={(e)=>setNewEventDate(e.target.value)} min={format(today, 'yyyy-MM-dd')} disabled={isProcessing} />
+                </div>
+                <div className="input-group">
+                  <label>시간</label>
+                  <input type="time" value={newTime} onChange={(e)=>setNewTime(e.target.value)} disabled={isProcessing} />
+                </div>
+              </div>
+
+              {/* 💡 한 줄 배치 시작: 정원 & 장소 */}
+              <div className="modal-row">
+                <div className="input-group flex-shrink">
+                  <label>정원 (명)</label>
+                  <input type="number" value={newMaxParticipants} onChange={(e)=>setNewMaxParticipants(e.target.value)} min="1" disabled={isProcessing} />
+                </div>
+                <div className="input-group">
+                  <label>집합 장소</label>
+                  <input type="text" placeholder="예: 한강대교 북단" value={newLocation} onChange={(e)=>setNewLocation(e.target.value)} disabled={isProcessing} />
+                </div>
+              </div>
+
               <input type="text" placeholder="제목" value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} disabled={isProcessing} />
-              <input type="time" value={newTime} onChange={(e)=>setNewTime(e.target.value)} disabled={isProcessing} />
-              <input type="text" placeholder="집합 장소" value={newLocation} onChange={(e)=>setNewLocation(e.target.value)} disabled={isProcessing} />
+              <input type="text" placeholder="카카오 오픈채팅 링크" value={newChatLink} onChange={(e)=>setNewChatLink(e.target.value)} disabled={isProcessing} />
               <textarea placeholder="상세 설명" value={newDescription} onChange={(e)=>setNewDescription(e.target.value)} disabled={isProcessing} />
+              
               <label className="gpx-upload-area" htmlFor="gpx-input" style={{ opacity: isProcessing ? 0.6 : 1 }}>
                 <FileUp size={28} /><span className="file-label-main">GPX 코스 업로드</span>
                 <input id="gpx-input" type="file" accept=".gpx" onChange={handleFileUpload} style={{display:'none'}} disabled={isProcessing}/>
                 {gpxData && <p style={{color:'#28a745', fontSize:'0.8rem', fontWeight:'bold'}}>✓ 파일 선택됨</p>}
               </label>
+              
               <button className="save-btn" onClick={saveEvent} disabled={isProcessing}>
                 {isProcessing ? (editingEventId ? "수정 중..." : "등록 중...") : (editingEventId ? "수정 완료" : "등록 완료")}
               </button>
@@ -351,46 +386,66 @@ const renderDescription = (text) => {
       )}
 
       <div className="event-preview">
-        {selectedDayEvents.map(ev => (
-          <div key={ev.id} className="event-item">
-            <div className="event-title-row">
-              <h3 className="event-title">📍 {ev.title}</h3>
-              <div className="event-action-btns">
-                {ev.gpx_content && <button className="icon-btn" onClick={() => downloadGpx(ev.gpx_content, ev.title)} title="GPX 다운로드"><Download size={18} color="#007bff" /></button>}
-                {profile && (profile.nickname === ev.creator_name || profile.is_admin) && (
-                  <>
-                    <button className="icon-btn" onClick={() => handleEditClick(ev)}><Settings2 size={18} /></button>
-                    <button className="icon-btn" onClick={() => deleteEvent(ev.id)}><Trash2 size={18} color="#ff4d4d" /></button>
-                  </>
-                )}
+        {selectedDayEvents.map(ev => {
+          const isJoined = ev.participants.includes(profile?.nickname);
+          const isFull = ev.participants.length >= ev.max_participants;
+          
+          return (
+            <div key={ev.id} className="event-item">
+              <div className="event-title-row">
+                <h3 className="event-title">📍 {ev.title}</h3>
+                <div className="event-action-btns">
+                  {ev.gpx_content && <button className="icon-btn" onClick={() => downloadGpx(ev.gpx_content, ev.title)} title="GPX 다운로드"><Download size={18} color="#007bff" /></button>}
+                  {profile && (profile.nickname === ev.creator_name || profile.is_admin) && (
+                    <>
+                      <button className="icon-btn" onClick={() => handleEditClick(ev)}><Settings2 size={18} /></button>
+                      <button className="icon-btn" onClick={() => deleteEvent(ev.id)}><Trash2 size={18} color="#ff4d4d" /></button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-            <div className="event-item-header">
-              <span>⏰ {ev.time} 집합</span>
-              {ev.location && <span><MapPin size={12} style={{marginLeft:'8px', marginRight:'2px'}}/>{ev.location}</span>}
-            </div>
-            <div className="creator-info"><User size={12} /> <span>작성자: {ev.creator_name}</span>
-              {profile?.is_admin && profile.nickname !== ev.creator_name && <button onClick={() => handleBlockUser(ev.creator_name)} className="icon-btn"><Ban size={12} color="#ff4d4d"/></button>}
-            </div>
-            {ev.description && (
-              <div className="event-desc-box" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                {renderDescription(ev.description)}
+              <div className="event-item-header">
+                <span>⏰ {ev.time} 집합</span>
+                {ev.location && <span><MapPin size={12} style={{marginLeft:'8px', marginRight:'2px'}}/>{ev.location}</span>}
               </div>
-            )}
-            {ev.gpx_content && <div className="map-wrapper"><GpxMap gpxData={ev.gpx_content} /></div>}
-            
-            <div className="participant-section">
-              <div className="participant-header"><Users size={14} /><span>참가 신청 ({ev.participants.length}명)</span></div>
-              <div className="participant-list">
-                {ev.participants.map(p => <span key={p} className="participant-name">{p}</span>)}
-              </div>
-            </div>
+              
+              {isValidChatLink(ev.chat_link) && ev.chat_link && (
+                <a href={ev.chat_link.startsWith('http') ? ev.chat_link : `https://${ev.chat_link}`} target="_blank" rel="noopener noreferrer" className="chat-link-btn">
+                  <MessageCircle size={14} /> 오픈채팅방 입장하기
+                </a>
+              )}
 
-            <button className={`rsvp-btn ${ev.participants.includes(profile?.nickname) ? 'cancel' : ''}`} onClick={() => handleRSVP(ev)}>
-              {ev.participants.includes(profile?.nickname) ? "❌ 참가 취소하기" : "🚲 라이딩 참가 신청"}
-            </button>
-          </div>
-        ))}
+              <div className="creator-info"><User size={12} /> <span>작성자: {ev.creator_name}</span>
+                {profile?.is_admin && profile.nickname !== ev.creator_name && <button onClick={() => handleBlockUser(ev.creator_name)} className="icon-btn"><Ban size={12} color="#ff4d4d"/></button>}
+              </div>
+              {ev.description && (
+                <div className="event-desc-box" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                  {renderDescription(ev.description)}
+                </div>
+              )}
+              {ev.gpx_content && <div className="map-wrapper"><GpxMap gpxData={ev.gpx_content} /></div>}
+              
+              <div className="participant-section">
+                <div className="participant-header">
+                  <Users size={14} />
+                  <span>참가 신청 ({ev.participants.length} / {ev.max_participants || 10}명)</span>
+                  {isFull && !isJoined && <span className="full-badge">마감</span>}
+                </div>
+                <div className="participant-list">
+                  {ev.participants.map(p => <span key={p} className="participant-name">{p}</span>)}
+                </div>
+              </div>
+
+              <button 
+                className={`rsvp-btn ${isJoined ? 'cancel' : ''} ${isFull && !isJoined ? 'disabled' : ''}`} 
+                onClick={() => handleRSVP(ev)}
+                disabled={isFull && !isJoined}
+              >
+                {isJoined ? "❌ 참가 취소하기" : (isFull ? "🔒 정원 마감" : "🚲 라이딩 참가 신청")}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

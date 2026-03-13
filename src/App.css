@@ -54,8 +54,8 @@ body, html, #root {
 
 /* 5. 모달 */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 3000; }
-.modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 400px; color: #333; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.modal-content { background: white; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; color: #333; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .modal-body { display: flex; flex-direction: column; gap: 12px; }
 .modal-body input, .modal-body textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; font-family: inherit; }
 
@@ -64,7 +64,7 @@ body, html, #root {
 .event-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
 .event-title { margin: 0; font-size: 1.25rem; font-weight: 800; flex: 1; }
 .event-item-header { font-size: 0.85rem; color: #222; font-weight: bold; margin-bottom: 15px; border-left: 4px solid #007bff; padding-left: 8px; }
-.event-desc-box { background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 20px; line-height: 1.5; color: #444;white-space: pre-wrap; word-break: break-all; }
+.event-desc-box { background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 0px; line-height: 1.5; color: #444;white-space: pre-wrap; word-break: break-all; }
 .map-wrapper { width: 100%; border-radius: 12px; overflow: hidden; height: 300px; margin-bottom: 20px; border: 1px solid #eee; }
 
 /* 💡 참가자 네모 박스 스타일 복구 */
@@ -92,4 +92,51 @@ body, html, #root {
 
 .desc-link:hover {
   color: #0056b3;
+}
+.chat-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #fee500; /* 카카오 노란색 */
+  color: #3c1e1e;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: bold;
+  margin: 10px 0;
+  transition: background-color 0.2s;
+}
+
+.chat-link-btn:hover {
+  background-color: #fada00;
+}
+
+/* 모달 내부 한 줄 배치를 위한 설정 */
+.modal-row {
+  display: flex;
+  gap: 12px; /* 간격 */
+  margin-bottom: 12px;
+}
+
+.modal-row .input-group {
+  flex: 1; /* 기본적으로 반씩 차지 */
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-row .input-group label {
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #666;
+}
+
+/* 정원(숫자) 입력칸은 조금 좁게, 장소는 넓게 쓰고 싶을 때 */
+.flex-shrink {
+  flex: 0 0 80px !important; /* 숫자 칸 너비 고정 */
+}
+
+.modal-body input, .modal-body textarea {
+  width: 100%;
+  box-sizing: border-box; /* 패딩 포함 너비 계산 */
 }
