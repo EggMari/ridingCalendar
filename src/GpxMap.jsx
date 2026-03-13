@@ -10,8 +10,8 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 let DefaultIcon = L.icon({
   iconUrl: markerIcon,
   shadowUrl: markerShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
+  iconSize: [12, 20],
+  iconAnchor: [6, 20]
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
@@ -36,17 +36,18 @@ function GpxMap({ gpxData }) {
       attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // 4. 💡 핵심: 텍스트 데이터를 가상 URL로 변환
+    // 4. 핵심: 텍스트 데이터를 가상 URL로 변환
     const gpxBlob = new Blob([gpxData], { type: 'application/gpx+xml' });
     const gpxUrl = URL.createObjectURL(gpxBlob);
 
-    // 5. 가상 URL을 이용해 GPX 그리기
+    // 5. 가상 URL을 이용해 GPX 그리기 (마커 URL 수정)
     const gpxLayer = new L.GPX(gpxUrl, {
       async: true,
       marker_options: {
-        startIconUrl: null, // 시작/종료 마커가 거슬리면 null
-        endIconUrl: null,
-        shadowUrl: null
+        // 💡 null 대신 유효한 마커 아이콘 URL을 입력해야 마커가 나옵니다.
+        startIconUrl: 'https://cdn.rawgit.com/mpetazzoni/leaflet-gpx/master/pin-icon-start.png',
+        endIconUrl: 'https://cdn.rawgit.com/mpetazzoni/leaflet-gpx/master/pin-icon-end.png',
+        shadowUrl: 'https://cdn.rawgit.com/mpetazzoni/leaflet-gpx/master/pin-shadow.png'
       },
       polyline_options: {
         color: 'red',
@@ -69,7 +70,7 @@ function GpxMap({ gpxData }) {
         mapRef.current = null;
       }
     };
-  }, [gpxData]); // gpxData가 바뀔 때마다 다시 그림
+  }, [gpxData]); 
 
   return (
     <div 
