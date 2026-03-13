@@ -290,7 +290,7 @@ function App() {
               <input type="text" placeholder="제목 (예: 남북 벙)" value={newTitle} onChange={(e)=>setNewTitle(e.target.value)} />
               <input type="time" value={newTime} onChange={(e)=>setNewTime(e.target.value)} />
               <input type="text" placeholder="집합 장소" value={newLocation} onChange={(e)=>setNewLocation(e.target.value)} />
-              <textarea placeholder="상세 설명" value={newDescription} onChange={(e)=>setNewDescription(e.target.value)} />
+              <textarea placeholder="오픈톡방 링크 및 상세 설명" value={newDescription} onChange={(e)=>setNewDescription(e.target.value)} />
               <label className="gpx-upload-area" htmlFor="gpx-input">
                 <FileUp size={28} /><span className="file-label-main">GPX 코스 업로드</span>
                 <input id="gpx-input" type="file" accept=".gpx" onChange={handleFileUpload} style={{display:'none'}}/>
