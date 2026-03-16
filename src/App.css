@@ -1,142 +1,397 @@
-/* 1. 기본 배경 및 정중앙 정렬 */
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-body, html, #root { 
-  margin: 0; padding: 0; width: 100%; min-height: 100vh;
-  background: #1a1a1a; font-family: -apple-system, sans-serif;
+/* =========================================
+   1. 기본 레이아웃 및 다크 테마 설정
+========================================= */
+* {
+  box-sizing: border-box;
 }
 
-.app-container { 
-  display: flex; flex-direction: column; align-items: center; 
-  padding: 20px 15px; width: 100%; color: white;
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a1a1a; /* 다크 모드 배경 */
+  color: #ffffff;            /* 기본 글씨 흰색 */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-/* 2. 상단 바 (Auth Bar) : 💡 줄바꿈 방지 및 한 줄 정렬 */
-.auth-bar { 
-  width: 100%; max-width: 500px;
-  display: flex; justify-content: flex-end; 
+.app-container {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 15px;
+}
+
+/* =========================================
+   2. 상단 네비게이션 & 버튼
+========================================= */
+.auth-bar {
   margin-bottom: 20px;
 }
 
-.user-info-row { 
-  display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; 
+.user-info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* 모바일 환경에 맞춰 간격 소폭 축소 */
+  flex-wrap: nowrap !important; 
+  background: #2a2a2a;
+  padding: 10px;
+  border-radius: 8px;
+}
+.user-nickname {
+  font-weight: bold;
+  font-size: 0.9rem;
+  white-space: nowrap; /* 줄바꿈 방지 */
+  overflow: hidden; /* 영역 넘어가면 숨김 */
+  text-overflow: ellipsis; /* 💡 너무 길면 '비앙키스페셜리시마...' 처럼 말줄임표 처리 */
+  flex: 1; /* 버튼들이 차지하고 남은 공간만 유연하게 사용 */
 }
 
-.user-nickname { font-size: 0.85rem; font-weight: bold; white-space: nowrap; }
 
-/* 버튼 스타일 간소화 */
-.icon-btn { background: none; border: none; color: #888; cursor: pointer; padding: 4px; display: flex; align-items: center; }
-.text-btn { background: none; border: 1px solid #444; color: #aaa; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; cursor: pointer; white-space: nowrap; }
-.reg-btn { background: #28a745; color: white; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; }
-
-.main-title { font-size: 1.7rem; font-weight: 900; text-align: center; margin: 10px 0 25px 0; }
-
-/* 3. 달력 및 주요 카드 (너비 500px 고정) */
-.calendar-custom, .selected-day-header, .event-preview {
-  width: 100%; max-width: 500px; margin-bottom: 20px;
+.text-btn {
+  background: #444;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
 }
 
-.calendar-custom { background: white; color: #222; border-radius: 15px; padding: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.days-row, .row { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; }
-.cell { aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; position: relative; font-size: 0.95rem; }
-
-/* 💡 과거 날짜 비활성화 스타일 */
-.cell.is-past { color: #ccc !important; opacity: 0.5; pointer-events: none; }
-.cell.not-valid { color: #eee !important; pointer-events: none; }
-
-.cell.selected { background: #007bff !important; color: white !important; font-weight: bold; }
-.event-dot { width: 4px; height: 4px; background: #ff4d4d; border-radius: 50%; position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); }
-
-/* 4. 날씨 정보 바 */
-.selected-day-header { display: flex; justify-content: space-between; align-items: center; background: #2a2a2a; padding: 12px 15px; border-radius: 12px; }
-.weather-summary { display: flex; gap: 10px; background: rgba(255,255,255,0.1); padding: 5px 12px; border-radius: 20px; }
-.weather-item { display: flex; align-items: center; gap: 4px; font-size: 0.8rem; font-weight: bold; }
-
-/* 5. 모달 */
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: center; z-index: 3000; }
-.modal-content { background: white; padding: 20px; border-radius: 20px; width: 90%; max-width: 400px; color: #333; }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.modal-body { display: flex; flex-direction: column; gap: 12px; }
-.modal-body input, .modal-body textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; font-family: inherit; }
-
-/* 6. 일정 카드 */
-.event-item { background: white; padding: 20px; border-radius: 15px; margin-bottom: 20px; color: #333; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-.event-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.event-title { margin: 0; font-size: 1.25rem; font-weight: 800; flex: 1; }
-.event-item-header { font-size: 0.85rem; color: #222; font-weight: bold; margin-bottom: 15px; border-left: 4px solid #007bff; padding-left: 8px; }
-.event-desc-box { background: #f8f9fa; padding: 12px; border-radius: 8px; font-size: 0.9rem; margin-bottom: 0px; line-height: 1.5; color: #444;white-space: pre-wrap; word-break: break-all; }
-.map-wrapper { width: 100%; border-radius: 12px; overflow: hidden; height: 300px; margin-bottom: 20px; border: 1px solid #eee; }
-
-/* 💡 참가자 네모 박스 스타일 복구 */
-.participant-section { background: #f1f3f5; padding: 15px; border-radius: 12px; margin-bottom: 15px; }
-.participant-header { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; color: #555; }
-.participant-list { display: flex; flex-wrap: wrap; gap: 6px; }
-.participant-name { 
-  background: white; 
-  border: 1px solid #dee2e6; 
-  padding: 4px 10px; 
-  border-radius: 6px; 
-  font-size: 0.8rem; 
-  color: #333; 
-  font-weight: 500;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+.reg-btn {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: auto; /* 우측 끝으로 밀기 */
+}
+.text-btn, .reg-btn {
+  flex-shrink: 0; 
+  white-space: nowrap;
 }
 
-.rsvp-btn { width: 100%; padding: 15px; background-color: #007bff; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 1rem; }
-.rsvp-btn.cancel { background-color: #6c757d; }
-.desc-link {
-  color: #007bff;
-  text-decoration: underline;
-  word-break: break-all;
+/* =========================================
+   3. 달력 (Calendar) 레이아웃 픽스
+========================================= */
+.calendar-custom {
+  background: #ffffff; /* 달력 배경 흰색 */
+  color: #333333;      /* 💡 달력 안의 글씨는 무조건 검은색 계열로 강제 (글씨 증발 해결) */
+  padding: 15px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  width: 100%;
 }
 
-.desc-link:hover {
-  color: #0056b3;
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
+
+.calendar-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.calendar-header button {
+  background: #f1f3f5;
+  color: #333; /* 화살표 보이게 픽스 */
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 요일과 날짜를 7등분으로 정확히 나눔 */
+.days-row, .row {
+  display: flex;
+  width: 100%;
+}
+
+.days-row {
+  border-bottom: 1px solid #eee;
+  margin-bottom: 5px;
+}
+
+.day-label {
+  flex: 1;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 8px 0;
+}
+
+.cell {
+  position: relative;
+  flex: 1;
+  height: 45px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  margin: 1px;
+}
+
+.cell span {
+  font-size: 0.95rem;
+  z-index: 2;
+  color: #333; /* 평일 검은색 강제 */
+}
+
+/* 선택된 날짜 (숫자는 흰색으로 반전) */
+.cell.selected {
+  background-color: #007bff !important;
+}
+.cell.selected span {
+  color: #ffffff !important;
+  font-weight: bold;
+}
+
+.cell.not-valid span { color: #ccc !important; } /* 다음 달/이전 달 */
+.cell.is-past { opacity: 0.3; cursor: not-allowed; } /* 지난 날짜 */
+
+/* 주말 색상 강제 지정 */
+.cell[data-day="6"] span, .day-label:nth-child(6) { color: #007bff; }
+.cell[data-day="0"] span, .day-label:nth-child(7) { color: #ff4d4d; }
+
+/* 💡 빨간 점 픽스 (숫자 아래에 예쁘게 배치) */
+.event-dot {
+  position: absolute;
+  bottom: 4px;
+  width: 5px;
+  height: 5px;
+  background-color: #ff4d4d;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.cell.selected .event-dot {
+  background-color: #ffffff; /* 파란 배경 위에선 흰색 점 */
+}
+
+/* =========================================
+   4. 선택된 날짜 요약 & 일정 리스트 (벙 카드)
+========================================= */
+.selected-day-header {
+  background: #2a2a2a;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.selected-info { margin: 0; font-weight: bold; font-size: 1.1rem; }
+.weather-summary { display: flex; gap: 10px; }
+.weather-item { display: flex; align-items: center; gap: 4px; font-size: 0.85rem; }
+
+/* 💡 벙 리스트 카드 디자인 복구 */
+.event-item {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.event-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.event-title { margin: 0; font-size: 1.1rem; color: #fff; }
+
+.event-item-header {
+  display: flex;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 10px;
+}
+
 .chat-link-btn {
+  background: #fee500;
+  color: #333;
+  padding: 6px 12px;
+  border-radius: 6px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background-color: #fee500; /* 카카오 노란색 */
-  color: #3c1e1e;
-  padding: 8px 12px;
-  border-radius: 6px;
   text-decoration: none;
   font-size: 0.85rem;
   font-weight: bold;
-  margin: 10px 0;
-  transition: background-color 0.2s;
+  margin-bottom: 10px;
 }
 
-.chat-link-btn:hover {
-  background-color: #fada00;
-}
-
-/* 모달 내부 한 줄 배치를 위한 설정 */
-.modal-row {
+.creator-info {
+  font-size: 0.8rem;
+  color: #888;
   display: flex;
-  gap: 12px; /* 간격 */
-  margin-bottom: 12px;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 10px;
 }
 
-.modal-row .input-group {
-  flex: 1; /* 기본적으로 반씩 차지 */
+.event-desc-box {
+  background: #1a1a1a;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+  color: #ddd;
+}
+
+/* =========================================
+   5. 참가자 명단 픽스 (다닥다닥 붙는 현상 해결)
+========================================= */
+.participant-section {
+  margin-bottom: 15px;
+  border-top: 1px solid #444;
+  padding-top: 12px;
+}
+
+.participant-header {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
 }
 
-.modal-row .input-group label {
-  font-size: 0.75rem;
+.participant-list {
+  display: flex;
+  flex-wrap: wrap; /* 💡 넘치면 줄바꿈 처리 */
+  gap: 6px; /* 💡 닉네임 사이 간격 */
+}
+
+.participant-name {
+  background: #444;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #fff;
+}
+
+/* =========================================
+   6. 마감 뱃지 및 상태 버튼
+========================================= */
+.full-badge {
+  background-color: #ff4d4d;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
   font-weight: bold;
-  color: #666;
 }
 
-/* 정원(숫자) 입력칸은 조금 좁게, 장소는 넓게 쓰고 싶을 때 */
-.flex-shrink {
-  flex: 0 0 80px !important; /* 숫자 칸 너비 고정 */
-}
-
-.modal-body input, .modal-body textarea {
+.rsvp-btn {
   width: 100%;
-  box-sizing: border-box; /* 패딩 포함 너비 계산 */
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  background: #007bff;
+  color: white;
+  transition: opacity 0.2s;
+}
+
+.rsvp-btn:active { opacity: 0.8; }
+.rsvp-btn.cancel { background: #ff4d4d; }
+.rsvp-btn.disabled { background: #555; color: #888; cursor: not-allowed; }
+
+/* =========================================
+   7. 모달 (벙 등록/수정)
+========================================= */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 15px;
+}
+
+.modal-content {
+  background: #2a2a2a;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  padding: 20px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.modal-header h3 { margin: 0; color: #fff; }
+.close-btn { background: none; border: none; color: #fff; cursor: pointer; }
+
+.modal-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.input-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.input-group label { font-size: 0.8rem; color: #aaa; }
+.flex-shrink { flex: 0 0 80px !important; }
+
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #444;
+  background: #1a1a1a;
+  color: #fff;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+}
+
+.save-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 6px;
+  background: #28a745;
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* =========================================
+   8. 푸터
+========================================= */
+.app-footer {
+  margin-top: 40px;
+  padding: 20px 0;
+  text-align: center;
+  border-top: 1px solid #333;
+}
+
+.install-shortcut-btn {
+  background-color: #333;
+  color: #fff;
+  border: 1px solid #555;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
