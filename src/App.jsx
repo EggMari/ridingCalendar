@@ -273,7 +273,7 @@ function App() {
         )}
       </div>
 
-      <h1 className="main-title">🚴‍♂️싸싸갤 벙 달력</h1>
+      <h1 className="main-title">🚴로싸갤 벙 달력</h1>
       
       <div className="calendar-custom">
         <div className="calendar-header">

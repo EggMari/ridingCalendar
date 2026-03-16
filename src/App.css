@@ -43,7 +43,15 @@ body {
   text-overflow: ellipsis; /* 💡 너무 길면 '비앙키스페셜리시마...' 처럼 말줄임표 처리 */
   flex: 1; /* 버튼들이 차지하고 남은 공간만 유연하게 사용 */
 }
-
+.main-title {
+  /* 2rem(너무 큼)과 1.5rem(너무 작음) 사이의 1.75rem 적용 */
+  font-size: 2.2rem !important; 
+  font-weight: 800;
+  text-align: center;
+  margin: 20px 0 10px 0;
+  letter-spacing: -0.5px; /* 자간을 살짝 좁히면 더 고급져 보입니다 */
+  white-space: nowrap;
+}
 
 .text-btn {
   background: #444;
